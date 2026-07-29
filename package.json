@@ -1,0 +1,28 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Sistema de gestion de inventario con un modulo de ventas online y gestion de terceros(proveedores)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mjbe-bikes/MJBE_Bikes_backend.git"
+  },
+  "author": "Jharol Alfonso Meza Tique - Manuel Felipe Orduz Perez - Jhair Julian Sarmiento Ramos",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mjbe-bikes/MJBE_Bikes_backend/issues"
+  },
+  "homepage": "https://github.com/mjbe-bikes/MJBE_Bikes_backend#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mysql2": "^3.23.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
