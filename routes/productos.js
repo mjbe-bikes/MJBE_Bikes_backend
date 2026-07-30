@@ -52,4 +52,68 @@ router.get("/", async (req, res) => {
     }
 });
 
-// 
+// Crear un nuevo cliente
+router.post ('/', async (req,res) => {
+    try{
+        const {
+            img_producto,
+            nombre_producto,
+            descripcion,
+            color_producto,
+            marca_producto,
+            cant_producto,
+            modelo,
+            id_talla,
+            id_proveedor,
+            id_local,
+            valor_unitario,
+            estado
+        } = req.body;
+
+        // Validar campos requeridos
+        if(!nombre_producto || !marca_producto || !modelo ||!id_talla || !id_proveedor || !valor_unitario) {
+            return res.status(400).json({
+                error: 'Nombre, marca, modelo, talla, proveedor y valor unitario son campos requeridos'
+            });
+        }
+
+        // Verificar si ya existe el documento
+        const [existing] = await pool.query(
+            'SELECT id FROM productos WHERE id = ?',
+            [id]
+        );
+
+        if (existing.length > 0) {
+            return res.status(400).json({
+                error: 'Ya existe este producto'
+            });
+        }
+
+        await pool.query(
+            `INSERT INTO productos ( 
+            img_producto,
+            nombre_producto,
+            descripcion,
+            color_producto,
+            marca_producto,
+            cant_producto,
+            modelo,
+            id_talla,
+            id_proveedor,
+            id_local,
+            valor_unitario,
+            estado
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [img_producto, nombre_producto, descripcion, color_producto, marca_producto, cant_producto,
+            modelo, id_talla, id_proveedor, id_local, valor_unitario, estado]
+        );
+
+        res.status(201).json({
+            mensaje: 'Producto creado exitosamente',
+            productos: req.body
+        });
+    } catch (error) {
+        console.error('Error al crear producto:', error);
+        res.status(500).json({error: error.message});
+    }
+});
