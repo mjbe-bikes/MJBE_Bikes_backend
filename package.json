@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "Sistema de gestion de inventario con un modulo de ventas online y gestion de terceros(proveedores)",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "repository": {
     "type": "git",
