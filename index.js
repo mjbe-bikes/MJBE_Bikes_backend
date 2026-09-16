@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import pool from './db.js';
 
 // rutas
@@ -24,7 +25,15 @@ import reportesRouter from './routes/reportes.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Permite peticiones desde React y el envío de cookies
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
+
+// Permite leer y crear cookies
+app.use(cookieParser());
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
