@@ -89,10 +89,10 @@ router.post("/", async (req, res) => {
             telefono_clnt
         } = req.body;
 
-        // Validar campos requeridos
-        if (!tipo_documento_id || !numero_documento || !nombres || !apellidos || !direccion || !telefono_clnt) {
+        // Validar campos requeridos (todo cliente debe tener un usuario asociado)
+        if (!usuario_id || !tipo_documento_id || !numero_documento || !nombres || !apellidos || !direccion || !telefono_clnt) {
             return res.status(400).json({
-                error: "Tipo de documento, numero, nombres, apellidos, direccion y telefono son campos requeridos"
+                error: "Usuario, tipo de documento, numero, nombres, apellidos, direccion y telefono son campos requeridos"
             });
         }
 
@@ -116,7 +116,7 @@ router.post("/", async (req, res) => {
                 direccion,
                 telefono_clnt
             ) VALUES (?,?,?,?,?,?,?)`,
-            [usuario_id ?? null, tipo_documento_id, numero_documento, nombres, apellidos, direccion, telefono_clnt]
+            [usuario_id, tipo_documento_id, numero_documento, nombres, apellidos, direccion, telefono_clnt]
         );
 
         const [rows] = await pool.query(`${SELECT_CLIENTES} WHERE c.id = ?`, [result.insertId]);
@@ -152,11 +152,16 @@ router.put("/:id", async (req, res) => {
             telefono_clnt
         } = req.body;
 
-        // COALESCE(?, usuario_id): si el front NO manda usuario_id (llega null),
-        // se conserva el que ya tenía la fila en vez de borrarlo.
+        // Validar campos requeridos (todo cliente debe tener un usuario asociado)
+        if (!usuario_id || !tipo_documento_id || !numero_documento || !nombres || !apellidos || !direccion || !telefono_clnt) {
+            return res.status(400).json({
+                error: "Usuario, tipo de documento, numero, nombres, apellidos, direccion y telefono son campos requeridos"
+            });
+        }
+
         await pool.query(
             `UPDATE clientes SET
-                usuario_id = COALESCE(?, usuario_id),
+                usuario_id = ?,
                 tipo_documento_id = ?,
                 numero_documento = ?,
                 nombres = ?,
@@ -165,7 +170,7 @@ router.put("/:id", async (req, res) => {
                 telefono_clnt = ?
             WHERE id = ?`,
             [
-                usuario_id ?? null,
+                usuario_id,
                 tipo_documento_id,
                 numero_documento,
                 nombres,
