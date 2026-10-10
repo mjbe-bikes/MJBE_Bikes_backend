@@ -1,0 +1,21 @@
+module.exports = {
+    testEnvironment: "node",
+
+    transform: {
+        "^.+\\.js$": "babel-jest"
+    },
+
+    moduleFileExtensions: ["js", "json"],
+
+    testMatch: [
+        "**/__tests__/**/*.test.js",
+        "**/?(*.)+(spec|test).js"
+    ],
+
+    clearMocks: true,
+
+    collectCoverageFrom: [
+        "routes/**/*.js",
+        "!routes/**/__tests__/**"
+    ]
+};
