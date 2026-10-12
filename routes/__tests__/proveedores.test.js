@@ -1,10 +1,21 @@
 import request from "supertest";
 import express from "express";
-import router from "../proveedores.js";
+import { jest } from "@jest/globals";
 
-jest.mock("../../db.js");
+// Creamos una consulta simulada para no acceder a la BD real.
+const mockQuery = jest.fn();
 
-import pool from "../../db.js";
+// Registramos el mock antes de importar la ruta.
+jest.unstable_mockModule("../../db.js", () => ({
+    default: {
+        query: mockQuery
+    }
+}));
+
+// Importamos la ruta después de registrar el mock.
+const { default: router } = await import("../proveedores.js");
+
+const pool = { query: mockQuery };
 
 const app = express();
 
@@ -14,7 +25,7 @@ app.use("/proveedores", router);
 describe("Pruebas de Caja Blanca - Proveedores", () => {
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        jest.resetAllMocks();
     });
 
     test("GET / debe retornar la lista de proveedores", async () => {
@@ -93,7 +104,7 @@ describe("Pruebas de Caja Blanca - Proveedores", () => {
         expect(pool.query).not.toHaveBeenCalled();
     });
 
-});
+
 test("GET /:id debe retornar un proveedor cuando existe", async () => {
 
     pool.query.mockResolvedValueOnce([
@@ -123,6 +134,7 @@ test("GET /:id debe retornar un proveedor cuando existe", async () => {
 
     expect(pool.query).toHaveBeenCalledTimes(1);
 });
+
 
 
 test("GET /:id debe retornar 404 cuando el proveedor no existe", async () => {
@@ -617,4 +629,21 @@ test("DELETE /:id debe retornar 500 cuando ocurre un error en la BD", async () =
 
     expect(res.body.error)
         .toBe("Error de conexión a la BD");
+});
+
+test("GET / debe retornar 500 cuando ocurre un error en la BD", async () => {
+    // Simulamos un fallo al consultar la lista de proveedores.
+    mockQuery.mockRejectedValueOnce(
+        new Error("Error de conexión a la BD")
+    );
+
+    const res = await request(app)
+        .get("/proveedores");
+
+    // Verificamos que la ruta responda con error 500.
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe("Error de conexión a la BD");
+
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+});
 });
