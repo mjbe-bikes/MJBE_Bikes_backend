@@ -1,17 +1,13 @@
-
-import { jest } from "@jest/globals";
 import request from "supertest";
 import express from "express";
+import comprasRouter from "../compras.js";
 
-// Simula la conexión a la base de datos para no modificar datos reales.
-const mockQuery = jest.fn();
+// Simulamos la conexión a la BD (usa __mocks__/db.js).
+// Así las pruebas no necesitan conectarse a MySQL.
+jest.mock("../../db.js");
+import pool from "../../db.js";
 
-jest.unstable_mockModule("../../db.js", () => ({
-    default: { query: mockQuery },
-}));
-
-// Importar después del mock para que la ruta use la consulta simulada.
-const { default: comprasRouter } = await import("../compras.js");
+const mockQuery = pool.query;
 
 const app = express();
 app.use(express.json());

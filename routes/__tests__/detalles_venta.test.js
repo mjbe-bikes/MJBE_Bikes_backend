@@ -1,14 +1,17 @@
-import { jest } from "@jest/globals";
 import request from "supertest";
 import express from "express";
+import detallesRouter from "../detallesVenta.js";
 
 // Simula la base de datos y la conexión transaccional.
-const mockQuery = jest.fn();
+jest.mock("../../db.js");
+import pool from "../../db.js";
+
+const mockQuery = pool.query;
 const mockBeginTransaction = jest.fn();
 const mockCommit = jest.fn();
 const mockRollback = jest.fn();
 const mockRelease = jest.fn();
-const mockGetConnection = jest.fn();
+const mockGetConnection = pool.getConnection;
 
 const mockConn = {
     query: mockQuery,
@@ -17,17 +20,6 @@ const mockConn = {
     rollback: mockRollback,
     release: mockRelease,
 };
-
-// Sustituye db.js para evitar acceder a la base de datos real.
-jest.unstable_mockModule("../../db.js", () => ({
-    default: {
-        query: mockQuery,
-        getConnection: mockGetConnection,
-    },
-}));
-
-// Importa la ruta después de configurar el mock.
-const { default: detallesRouter } = await import("../detallesVenta.js");
 
 const app = express();
 app.use(express.json());

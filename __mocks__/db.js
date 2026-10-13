@@ -1,5 +1,6 @@
 const pool = {
-    query: jest.fn()
+    query: jest.fn(),
+    getConnection: jest.fn()
 };
 
 export default pool;

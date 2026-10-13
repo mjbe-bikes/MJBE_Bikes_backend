@@ -1,17 +1,13 @@
-
-import express from "express";
 import request from "supertest";
-import { jest } from "@jest/globals";
+import express from "express";
+import localesRouter from "../locales.js";
 
-// Simulamos la base de datos para no modificar registros reales.
-const mockQuery = jest.fn();
+// Simulamos la conexión a la BD (usa __mocks__/db.js).
+// Así las pruebas no necesitan conectarse a MySQL.
+jest.mock("../../db.js");
+import pool from "../../db.js";
 
-jest.unstable_mockModule("../../db.js", () => ({
-    default: { query: mockQuery },
-}));
-
-// Importamos la ruta después de configurar el mock de la base de datos.
-const { default: localesRouter } = await import("../locales.js");
+const mockQuery = pool.query;
 
 const app = express();
 app.use(express.json());
