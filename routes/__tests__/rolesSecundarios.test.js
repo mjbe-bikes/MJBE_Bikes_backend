@@ -89,6 +89,16 @@ describe('Pruebas de Caja Blanca - Roles Secundarios', () => {
     expect(res.body.error).toBe('Asignacion no encontrada');
   });
 
+  test('DELETE /:usuario_id/:rol_secundario debe quitar el rol secundario', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await request(app).delete('/roles_secundarios/1/2');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.mensaje).toBe('Rol secundario eliminado exitosamente');
+    expect(pool.query.mock.calls[0][1]).toEqual(['1', '2']);
+  });
+
   describe('Manejo de errores (catch)', () => {
 
     beforeEach(() => {

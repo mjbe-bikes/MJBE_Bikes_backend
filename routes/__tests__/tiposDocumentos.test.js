@@ -88,6 +88,36 @@ describe('Pruebas de Caja Blanca - Tipos de Documento', () => {
     expect(res.statusCode).toBe(404);
   });
 
+  test('GET /:id debe retornar el tipo de documento si existe', async () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, sigla: 'CC', nombre_documento: 'Cedula de ciudadania' }]]);
+
+    const res = await request(app).get('/tipos_documentos/1');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.sigla).toBe('CC');
+    expect(pool.query.mock.calls[0][1]).toEqual(['1']);
+  });
+
+  test('PUT /:id debe retornar 404 si no se actualizó ninguna fila', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
+
+    const res = await request(app)
+      .put('/tipos_documentos/99')
+      .send({ sigla: 'CE', nombre_documento: 'Cedula de extranjeria' });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Tipo de documento no encontrado');
+  });
+
+  test('DELETE /:id debe eliminar el tipo de documento', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await request(app).delete('/tipos_documentos/1');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.mensaje).toBe('Tipo de documento eliminado exitosamente');
+  });
+
   describe('Manejo de errores (catch)', () => {
 
     beforeEach(() => {

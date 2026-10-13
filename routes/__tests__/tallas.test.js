@@ -106,6 +106,25 @@ describe('Pruebas de Caja Blanca - Tallas', () => {
     expect(res.body.mensaje).toBe('Talla eliminada exitosamente');
   });
 
+  test('GET /:id debe retornar la talla si existe', async () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, medida_id: 1, talla: 'M', tipo_medida: 'Ropa' }]]);
+
+    const res = await request(app).get('/tallas/1');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.talla).toBe('M');
+    expect(pool.query.mock.calls[0][1]).toEqual(['1']);
+  });
+
+  test('DELETE /:id debe retornar 404 si la talla no existe', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
+
+    const res = await request(app).delete('/tallas/99');
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Talla no encontrada');
+  });
+
   describe('Manejo de errores (catch)', () => {
 
     beforeEach(() => {

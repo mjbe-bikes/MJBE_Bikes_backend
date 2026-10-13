@@ -153,6 +153,68 @@ describe('Pruebas de Caja Blanca - Usuarios', () => {
     expect(res.body.mensaje).toBe('Usuario eliminado exitosamente');
   });
 
+  test('GET /:id debe retornar el usuario si existe', async () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, login: 'admin', tipo_rol: 'Administrador' }]]);
+
+    const res = await request(app).get('/usuarios/1');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.login).toBe('admin');
+    expect(pool.query.mock.calls[0][1]).toEqual(['1']);
+  });
+
+  test('POST / debe guardar los campos opcionales cuando se envían', async () => {
+    // 1ra: sin duplicados, 2da: INSERT, 3ra: SELECT del usuario creado
+    pool.query
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([{ insertId: 11 }])
+      .mockResolvedValueOnce([[{ id: 11, login: 'completo' }]]);
+
+    const res = await request(app)
+      .post('/usuarios')
+      .send({
+        login: 'completo',
+        email: 'completo@test.com',
+        password_harsh: '123',
+        image_url: 'foto.png',
+        token_activacion: 'tok',
+        reset_key: 'key',
+        reset_base: 'base',
+        rol_id: 3,
+        estado: 'inactivo'
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(pool.query.mock.calls[1][1]).toEqual(
+      ['completo', 'completo@test.com', '123', 'foto.png', 'tok', 'key', 'base', 3, 'inactivo']
+    );
+  });
+
+  test('PATCH /:id debe actualizar solo los campos enviados', async () => {
+    // 1ra: UPDATE, 2da: SELECT actualizado
+    pool.query
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([[{ id: 1, estado: 'inactivo' }]]);
+
+    const res = await request(app)
+      .patch('/usuarios/1')
+      .send({ estado: 'inactivo' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.estado).toBe('inactivo');
+    expect(pool.query.mock.calls[0][0]).toContain('SET estado = ?');
+    expect(pool.query.mock.calls[0][1]).toEqual(['inactivo', '1']);
+  });
+
+  test('DELETE /:id debe retornar 404 si el usuario no existe', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
+
+    const res = await request(app).delete('/usuarios/99');
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Usuario no encontrado');
+  });
+
   describe('Manejo de errores (catch)', () => {
 
     beforeEach(() => {

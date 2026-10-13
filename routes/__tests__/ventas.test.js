@@ -141,6 +141,58 @@ describe('Pruebas de Caja Blanca - Ventas', () => {
     expect(res.body.mensaje).toBe('Venta eliminada exitosamente');
   });
 
+  test('GET / con user_id e id_vendedor debe priorizar id_vendedor', async () => {
+    pool.query.mockResolvedValueOnce([[]]);
+
+    await request(app).get('/ventas?user_id=5&id_vendedor=7');
+
+    expect(pool.query.mock.calls[0][0]).toContain('WHERE v.id_vendedor = ?');
+    expect(pool.query.mock.calls[0][1]).toEqual(['7']);
+  });
+
+  test('GET / con filtros no permitidos debe ignorarlos', async () => {
+    pool.query.mockResolvedValueOnce([[]]);
+
+    await request(app).get('/ventas?columnaInvalida=x');
+
+    expect(pool.query.mock.calls[0][0]).not.toContain('WHERE');
+    expect(pool.query.mock.calls[0][1]).toEqual([]);
+  });
+
+  test('GET /:id debe retornar la venta si existe', async () => {
+    pool.query.mockResolvedValueOnce([[{ id: 1, vendedor: 'admin', cliente: 'Ana Gomez' }]]);
+
+    const res = await request(app).get('/ventas/1');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.cliente).toBe('Ana Gomez');
+    expect(pool.query.mock.calls[0][1]).toEqual(['1']);
+  });
+
+  test('PATCH /:id con fecha debe convertirla a Date', async () => {
+    // 1ra: UPDATE, 2da: SELECT actualizado
+    pool.query
+      .mockResolvedValueOnce([{ affectedRows: 1 }])
+      .mockResolvedValueOnce([[{ id: 1 }]]);
+
+    await request(app)
+      .patch('/ventas/1')
+      .send({ fecha: '2026-10-01', total: 3000 });
+
+    expect(pool.query.mock.calls[0][0]).toContain('SET fecha = ?, total = ?');
+    expect(pool.query.mock.calls[0][1][0]).toBeInstanceOf(Date);
+    expect(pool.query.mock.calls[0][1][1]).toBe(3000);
+  });
+
+  test('DELETE /:id debe retornar 404 si la venta no existe', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
+
+    const res = await request(app).delete('/ventas/99');
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Venta no encontrada');
+  });
+
   describe('Manejo de errores (catch)', () => {
 
     beforeEach(() => {

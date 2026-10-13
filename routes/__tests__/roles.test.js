@@ -87,6 +87,36 @@ describe('Pruebas de Caja Blanca - Roles', () => {
     expect(res.body.mensaje).toBe('Rol eliminado exitosamente');
   });
 
+  test('GET /:id debe retornar el rol si existe', async () => {
+    pool.query.mockResolvedValueOnce([[{ id_rol: 1, tipo_rol: 'Administrador' }]]);
+
+    const res = await request(app).get('/roles/1');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ id_rol: 1, tipo_rol: 'Administrador' });
+    expect(pool.query.mock.calls[0][1]).toEqual(['1']);
+  });
+
+  test('PUT /:id debe retornar el rol actualizado', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+
+    const res = await request(app)
+      .put('/roles/2')
+      .send({ tipo_rol: 'Cajero' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ id_rol: 2, tipo_rol: 'Cajero' });
+  });
+
+  test('DELETE /:id debe retornar 404 si el rol no existe', async () => {
+    pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
+
+    const res = await request(app).delete('/roles/99');
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Rol no encontrado');
+  });
+
   describe('Manejo de errores (catch)', () => {
 
     beforeEach(() => {
