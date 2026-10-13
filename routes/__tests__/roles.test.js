@@ -87,14 +87,53 @@ describe('Pruebas de Caja Blanca - Roles', () => {
     expect(res.body.mensaje).toBe('Rol eliminado exitosamente');
   });
 
-  test('GET / debe retornar 500 si falla la BD', async () => {
-    // Silenciamos el console.error de la ruta para no ensuciar la salida
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+  describe('Manejo de errores (catch)', () => {
 
-    const res = await request(app).get('/roles');
+    beforeEach(() => {
+      // Silenciamos el console.error de la ruta para no ensuciar la salida
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      // Todas las pruebas de este bloque simulan una falla de la BD
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+    });
 
-    expect(res.statusCode).toBe(500);
-    expect(res.body.error).toBe('Fallo de conexion');
+    test('GET / debe retornar 500 si falla la BD', async () => {
+      const res = await request(app).get('/roles');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    test('GET /:id debe retornar 500 si falla la BD', async () => {
+      const res = await request(app).get('/roles/1');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('POST / debe retornar 500 si falla el INSERT', async () => {
+      const res = await request(app)
+        .post('/roles')
+        .send({ tipo_rol: 'Vendedor' });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('PUT /:id debe retornar 500 si falla el UPDATE', async () => {
+      const res = await request(app)
+        .put('/roles/1')
+        .send({ tipo_rol: 'Otro' });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('DELETE /:id debe retornar 500 si falla el DELETE', async () => {
+      const res = await request(app).delete('/roles/1');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
   });
 });

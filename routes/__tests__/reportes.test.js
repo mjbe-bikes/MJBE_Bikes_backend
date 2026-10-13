@@ -62,15 +62,51 @@ describe('Pruebas de Caja Blanca - Reportes', () => {
     expect(res.body.reportes[0].descripcion).toContain('Cliente: N/D');
   });
 
-  test('GET /dashboard debe retornar 500 si falla la BD', async () => {
-    // Silenciamos el console.error de la ruta para no ensuciar la salida
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+  describe('Manejo de errores (catch)', () => {
 
-    const res = await request(app).get('/reportes/dashboard');
+    beforeEach(() => {
+      // Silenciamos el console.error de la ruta para no ensuciar la salida
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
 
-    expect(res.statusCode).toBe(500);
-    expect(res.body.error).toBe('Fallo de conexion');
-    expect(pool.query).toHaveBeenCalledTimes(1); // Se detiene en la primera consulta
+    test('GET /dashboard debe retornar 500 si falla la primera consulta', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).get('/reportes/dashboard');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(pool.query).toHaveBeenCalledTimes(1); // Se detiene en la primera consulta
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    test('GET /dashboard debe retornar 500 si falla la consulta de últimas ventas', async () => {
+      // Los 7 conteos responden bien y falla la 8va consulta (últimas ventas)
+      pool.query
+        .mockResolvedValueOnce([[{ totalProductos: 0 }]])
+        .mockResolvedValueOnce([[{ totalClientes: 0 }]])
+        .mockResolvedValueOnce([[{ totalVentas: 0 }]])
+        .mockResolvedValueOnce([[{ ventasHoy: 0 }]])
+        .mockResolvedValueOnce([[{ ventasMes: 0 }]])
+        .mockResolvedValueOnce([[{ stockBajo: 0 }]])
+        .mockResolvedValueOnce([[{ ingresosMes: 0 }]])
+        .mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).get('/reportes/dashboard');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(pool.query).toHaveBeenCalledTimes(8);
+    });
+
+    test('GET /dashboard debe retornar 500 si un conteo no devuelve filas', async () => {
+      // Desestructurar [[{ alias }]] sobre un arreglo vacío lanza TypeError
+      pool.query.mockResolvedValueOnce([[]]);
+
+      const res = await request(app).get('/reportes/dashboard');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBeDefined();
+    });
   });
 });

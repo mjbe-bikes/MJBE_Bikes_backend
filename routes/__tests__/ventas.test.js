@@ -141,14 +141,76 @@ describe('Pruebas de Caja Blanca - Ventas', () => {
     expect(res.body.mensaje).toBe('Venta eliminada exitosamente');
   });
 
-  test('GET / debe retornar 500 si falla la BD', async () => {
-    // Silenciamos el console.error de la ruta para no ensuciar la salida
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+  describe('Manejo de errores (catch)', () => {
 
-    const res = await request(app).get('/ventas');
+    beforeEach(() => {
+      // Silenciamos el console.error de la ruta para no ensuciar la salida
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
 
-    expect(res.statusCode).toBe(500);
-    expect(res.body.error).toBe('Fallo de conexion');
+    test('GET / debe retornar 500 si falla la BD', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).get('/ventas');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    test('GET /:id debe retornar 500 si falla la BD', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).get('/ventas/1');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('POST / debe retornar 500 si falla el INSERT', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app)
+        .post('/ventas')
+        .send({ id_vendedor: 1, id_cliente: 2 });
+
+      expect(res.statusCode).toBe(500);
+      expect(pool.query).toHaveBeenCalledTimes(1); // No debe consultar la venta creada
+    });
+
+    test('POST / debe retornar 500 si falla el SELECT posterior al INSERT', async () => {
+      // 1ra: INSERT correcto, 2da: falla el SELECT de la venta creada
+      pool.query
+        .mockResolvedValueOnce([{ insertId: 20 }])
+        .mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app)
+        .post('/ventas')
+        .send({ id_vendedor: 1, id_cliente: 2 });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(pool.query).toHaveBeenCalledTimes(2);
+    });
+
+    test('PATCH /:id debe retornar 500 si falla el UPDATE', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app)
+        .patch('/ventas/1')
+        .send({ pago: true });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('DELETE /:id debe retornar 500 si falla el DELETE', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).delete('/ventas/1');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
   });
 });

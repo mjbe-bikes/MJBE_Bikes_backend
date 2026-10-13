@@ -89,14 +89,65 @@ describe('Pruebas de Caja Blanca - Roles Secundarios', () => {
     expect(res.body.error).toBe('Asignacion no encontrada');
   });
 
-  test('GET / debe retornar 500 si falla la BD', async () => {
-    // Silenciamos el console.error de la ruta para no ensuciar la salida
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+  describe('Manejo de errores (catch)', () => {
 
-    const res = await request(app).get('/roles_secundarios');
+    beforeEach(() => {
+      // Silenciamos el console.error de la ruta para no ensuciar la salida
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
 
-    expect(res.statusCode).toBe(500);
-    expect(res.body.error).toBe('Fallo de conexion');
+    test('GET / debe retornar 500 si falla la BD', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).get('/roles_secundarios');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    test('GET /:usuario_id debe retornar 500 si falla la BD', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).get('/roles_secundarios/1');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('POST / debe retornar 500 si falla la verificación de duplicado', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app)
+        .post('/roles_secundarios')
+        .send({ usuario_id: 1, rol_secundario: 2 });
+
+      expect(res.statusCode).toBe(500);
+      expect(pool.query).toHaveBeenCalledTimes(1); // No debe llegar al INSERT
+    });
+
+    test('POST / debe retornar 500 si falla el INSERT', async () => {
+      // 1ra llamada: no hay duplicado, 2da llamada: falla el INSERT
+      pool.query
+        .mockResolvedValueOnce([[]])
+        .mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app)
+        .post('/roles_secundarios')
+        .send({ usuario_id: 1, rol_secundario: 2 });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(pool.query).toHaveBeenCalledTimes(2);
+    });
+
+    test('DELETE /:usuario_id/:rol_secundario debe retornar 500 si falla el DELETE', async () => {
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+
+      const res = await request(app).delete('/roles_secundarios/1/2');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
   });
 });

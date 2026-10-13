@@ -88,14 +88,53 @@ describe('Pruebas de Caja Blanca - Tipos de Documento', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  test('GET / debe retornar 500 si falla la BD', async () => {
-    // Silenciamos el console.error de la ruta para no ensuciar la salida
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+  describe('Manejo de errores (catch)', () => {
 
-    const res = await request(app).get('/tipos_documentos');
+    beforeEach(() => {
+      // Silenciamos el console.error de la ruta para no ensuciar la salida
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      // Todas las pruebas de este bloque simulan una falla de la BD
+      pool.query.mockRejectedValueOnce(new Error('Fallo de conexion'));
+    });
 
-    expect(res.statusCode).toBe(500);
-    expect(res.body.error).toBe('Fallo de conexion');
+    test('GET / debe retornar 500 si falla la BD', async () => {
+      const res = await request(app).get('/tipos_documentos');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    test('GET /:id debe retornar 500 si falla la BD', async () => {
+      const res = await request(app).get('/tipos_documentos/1');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('POST / debe retornar 500 si falla el INSERT', async () => {
+      const res = await request(app)
+        .post('/tipos_documentos')
+        .send({ sigla: 'NIT', nombre_documento: 'Numero de identificacion tributaria' });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('PUT /:id debe retornar 500 si falla el UPDATE', async () => {
+      const res = await request(app)
+        .put('/tipos_documentos/1')
+        .send({ sigla: 'CE', nombre_documento: 'Cedula de extranjeria' });
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
+
+    test('DELETE /:id debe retornar 500 si falla el DELETE', async () => {
+      const res = await request(app).delete('/tipos_documentos/1');
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toBe('Fallo de conexion');
+    });
   });
 });
