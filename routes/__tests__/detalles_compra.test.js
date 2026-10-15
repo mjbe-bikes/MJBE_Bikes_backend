@@ -1,4 +1,4 @@
-import request from "supertest";
+﻿import request from "supertest";
 import express from "express";
 import detallesRouter from "../detallesCompra.js";
 
@@ -13,7 +13,7 @@ const mockRollback = jest.fn();
 const mockRelease = jest.fn();
 const mockGetConnection = pool.getConnection;
 
-// Simulamos la conexión que utiliza las transacciones.
+// Simulamos la conexiÃ³n que utiliza las transacciones.
 const mockConn = {
     query: mockQuery,
     beginTransaction: mockBeginTransaction,
@@ -30,10 +30,9 @@ jest.unstable_mockModule("../../db.js", () => ({
     },
 }));
 
-// Importamos la ruta después de configurar la simulación de la base de datos.
-const { default: detallesRouter } = await import("../detallesCompra.js");
+// Importamos la ruta despuÃ©s de configurar la simulaciÃ³n de la base de datos.
 
-// Creamos una aplicación Express para probar los endpoints.
+// Creamos una aplicaciÃ³n Express para probar los endpoints.
 const app = express();
 app.use(express.json());
 app.use("/api/detalles-compra", detallesRouter);
@@ -48,7 +47,7 @@ const detalleEjemplo = {
     nombre_producto: "Producto de prueba",
 };
 
-// Preparamos la conexión simulada para las pruebas con transacciones.
+// Preparamos la conexiÃ³n simulada para las pruebas con transacciones.
 function prepararConexion() {
     mockGetConnection.mockResolvedValue(mockConn);
     mockBeginTransaction.mockResolvedValue(undefined);
@@ -57,12 +56,12 @@ function prepararConexion() {
     mockRelease.mockImplementation(() => {});
 }
 
-describe("Pruebas del módulo detalles_compra", () => {
+describe("Pruebas del mÃ³dulo detalles_compra", () => {
     beforeEach(() => {
         // Limpiamos los mocks antes de cada prueba.
         jest.resetAllMocks();
 
-        // Configuramos nuevamente la conexión simulada.
+        // Configuramos nuevamente la conexiÃ³n simulada.
         prepararConexion();
 
         // Evitamos mostrar los errores que se provocan intencionalmente.
@@ -70,7 +69,7 @@ describe("Pruebas del módulo detalles_compra", () => {
     });
 
     afterEach(() => {
-        // Restauramos los métodos simulados después de cada prueba.
+        // Restauramos los mÃ©todos simulados despuÃ©s de cada prueba.
         jest.restoreAllMocks();
     });
 
@@ -131,13 +130,13 @@ describe("Pruebas del módulo detalles_compra", () => {
 
         test("debe responder 500 si falla la consulta", async () => {
             mockQuery.mockRejectedValueOnce(
-                new Error("Error de conexión")
+                new Error("Error de conexiÃ³n")
             );
 
             const res = await request(app).get("/api/detalles-compra");
 
             expect(res.status).toBe(500);
-            expect(res.body.error).toBe("Error de conexión");
+            expect(res.body.error).toBe("Error de conexiÃ³n");
         });
     });
 
@@ -187,8 +186,8 @@ describe("Pruebas del módulo detalles_compra", () => {
     // =========================================================
     describe("POST /", () => {
         test("debe crear un detalle y aumentar el stock", async () => {
-            // Simulamos la búsqueda del producto, el ajuste del stock,
-            // la inserción del detalle y la consulta del resultado.
+            // Simulamos la bÃºsqueda del producto, el ajuste del stock,
+            // la inserciÃ³n del detalle y la consulta del resultado.
             mockConn.query
                 .mockResolvedValueOnce([[{ id: 3 }], []])
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []])
@@ -216,7 +215,7 @@ describe("Pruebas del módulo detalles_compra", () => {
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });
 
-        test("debe crear el detalle con precio null si no se envía", async () => {
+        test("debe crear el detalle con precio null si no se envÃ­a", async () => {
             mockConn.query
                 // El producto existe.
                 .mockResolvedValueOnce([[{ id: 3 }], []])
@@ -243,7 +242,7 @@ describe("Pruebas del módulo detalles_compra", () => {
 
             expect(res.status).toBe(201);
 
-            // El cuarto parámetro del INSERT debe ser null.
+            // El cuarto parÃ¡metro del INSERT debe ser null.
             expect(mockConn.query.mock.calls[2][1][3]).toBeNull();
         });
 
@@ -263,7 +262,7 @@ describe("Pruebas del módulo detalles_compra", () => {
         });
 
         test.each([-1, "abc"])(
-            "debe rechazar una cantidad inválida: %s",
+            "debe rechazar una cantidad invÃ¡lida: %s",
             async (cantidad) => {
                 const res = await request(app)
                     .post("/api/detalles-compra")
@@ -317,6 +316,31 @@ describe("Pruebas del módulo detalles_compra", () => {
             expect(mockRollback).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });
+
+        // NUEVA PRUEBA AGREGADA
+        test("debe manejar el fallo del rollback al crear", async () => {
+            // La consulta principal falla y el rollback también.
+            mockConn.query.mockRejectedValueOnce(
+                new Error("Error de consulta")
+            );
+            mockRollback.mockRejectedValueOnce(
+                new Error("Error de rollback")
+            );
+
+            const res = await request(app)
+                .post("/api/detalles-compra")
+                .send({
+                    id_compra: 2,
+                    id_producto: 3,
+                    cantidad: 2,
+                    precio_unitario: 15000
+                });
+
+            expect(res.status).toBe(500);
+            expect(res.body.error).toBe("Error de consulta");
+            expect(mockRollback).toHaveBeenCalledTimes(1);
+            expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
     });
 
     // =========================================================
@@ -341,7 +365,7 @@ describe("Pruebas del módulo detalles_compra", () => {
                 ], []])
                 // Se descuenta el stock del producto anterior.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []])
-                // Se busca el producto que quedará asociado.
+                // Se busca el producto que quedarÃ¡ asociado.
                 .mockResolvedValueOnce([[{ id: 3 }], []])
                 // Se actualiza el stock del producto nuevo.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []])
@@ -366,7 +390,7 @@ describe("Pruebas del módulo detalles_compra", () => {
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });
 
-        test("debe actualizar el detalle con precio null si no se envía", async () => {
+        test("debe actualizar el detalle con precio null si no se envÃ­a", async () => {
             mockConn.query
                 .mockResolvedValueOnce([[
                     {
@@ -431,7 +455,7 @@ describe("Pruebas del módulo detalles_compra", () => {
             expect(mockConn.query.mock.calls[4][1][3]).toBe(15000);
         });
 
-        test("debe conservar la cantidad anterior si no se envía una nueva", async () => {
+        test("debe conservar la cantidad anterior si no se envÃ­a una nueva", async () => {
             // Simulamos el detalle existente con 5 unidades.
             mockConn.query
                 .mockResolvedValueOnce([[
@@ -443,11 +467,11 @@ describe("Pruebas del módulo detalles_compra", () => {
                 ], []])
                 // Simulamos el ajuste del inventario anterior.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []])
-                // Simulamos la búsqueda del producto.
+                // Simulamos la bÃºsqueda del producto.
                 .mockResolvedValueOnce([[{ id: 3 }], []])
-                // Simulamos la actualización del inventario.
+                // Simulamos la actualizaciÃ³n del inventario.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []])
-                // Simulamos la actualización del detalle.
+                // Simulamos la actualizaciÃ³n del detalle.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []]);
 
             // Simulamos la consulta final del detalle actualizado.
@@ -488,7 +512,7 @@ describe("Pruebas del módulo detalles_compra", () => {
         });
 
         test.each([0, -2, "abc"])(
-            "debe rechazar una cantidad inválida al actualizar: %s",
+            "debe rechazar una cantidad invÃ¡lida al actualizar: %s",
             async (cantidad) => {
                 mockConn.query.mockResolvedValueOnce([[
                     {
@@ -554,6 +578,26 @@ describe("Pruebas del módulo detalles_compra", () => {
             expect(mockRollback).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });
+
+        // NUEVA PRUEBA AGREGADA
+        test("debe manejar el fallo del rollback al actualizar", async () => {
+            // La primera consulta falla y también falla el rollback.
+            mockConn.query.mockRejectedValueOnce(
+                new Error("Error de consulta")
+            );
+            mockRollback.mockRejectedValueOnce(
+                new Error("Error de rollback")
+            );
+
+            const res = await request(app)
+                .put("/api/detalles-compra/1")
+                .send({ cantidad: 7 });
+
+            expect(res.status).toBe(500);
+            expect(res.body.error).toBe("Error de consulta");
+            expect(mockRollback).toHaveBeenCalledTimes(1);
+            expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
     });
 
     // =========================================================
@@ -609,6 +653,25 @@ describe("Pruebas del módulo detalles_compra", () => {
 
             expect(res.status).toBe(500);
             expect(res.body.error).toBe("Error al eliminar");
+            expect(mockRollback).toHaveBeenCalledTimes(1);
+            expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
+
+        // NUEVA PRUEBA AGREGADA
+        test("debe manejar el fallo del rollback al eliminar", async () => {
+            // La primera consulta falla y el rollback también.
+            mockConn.query.mockRejectedValueOnce(
+                new Error("Error de consulta")
+            );
+            mockRollback.mockRejectedValueOnce(
+                new Error("Error de rollback")
+            );
+
+            const res = await request(app)
+                .delete("/api/detalles-compra/1");
+
+            expect(res.status).toBe(500);
+            expect(res.body.error).toBe("Error de consulta");
             expect(mockRollback).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });

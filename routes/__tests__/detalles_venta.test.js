@@ -1,4 +1,3 @@
-
 import { jest } from "@jest/globals";
 import request from "supertest";
 import express from "express";
@@ -304,6 +303,27 @@ describe("Pruebas del módulo detallesVenta", () => {
             expect(mockRollback).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });
+
+        // NUEVA PRUEBA AGREGADA
+        test("debe manejar el fallo del rollback al crear", async () => {
+            // La consulta falla y también falla el rollback.
+            mockQuery.mockRejectedValueOnce(new Error("Error de consulta"));
+            mockRollback.mockRejectedValueOnce(new Error("Error de rollback"));
+
+            const res = await request(app)
+                .post("/api/detalles-venta")
+                .send({
+                    id_venta: 2,
+                    id_producto: 3,
+                    cantidad: 5,
+                });
+
+            // El error original debe conservarse y la conexión liberarse.
+            expect(res.status).toBe(500);
+            expect(res.body.error).toBe("Error de consulta");
+            expect(mockRollback).toHaveBeenCalledTimes(1);
+            expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe("PUT /:id", () => {
@@ -464,6 +484,23 @@ describe("Pruebas del módulo detallesVenta", () => {
             expect(mockRollback).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });
+
+        // NUEVA PRUEBA AGREGADA
+        test("debe manejar el fallo del rollback al actualizar", async () => {
+            // La consulta falla y también falla el rollback.
+            mockQuery.mockRejectedValueOnce(new Error("Error de consulta"));
+            mockRollback.mockRejectedValueOnce(new Error("Error de rollback"));
+
+            const res = await request(app)
+                .put("/api/detalles-venta/1")
+                .send({ cantidad: 7 });
+
+            // Comprueba que la ruta gestione ambos errores.
+            expect(res.status).toBe(500);
+            expect(res.body.error).toBe("Error de consulta");
+            expect(mockRollback).toHaveBeenCalledTimes(1);
+            expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe("DELETE /:id", () => {
@@ -505,6 +542,22 @@ describe("Pruebas del módulo detallesVenta", () => {
 
             expect(res.status).toBe(500);
             expect(res.body.error).toBe("Error al eliminar");
+            expect(mockRollback).toHaveBeenCalledTimes(1);
+            expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
+
+        // NUEVA PRUEBA AGREGADA
+        test("debe manejar el fallo del rollback al eliminar", async () => {
+            // La consulta falla y también falla el rollback.
+            mockQuery.mockRejectedValueOnce(new Error("Error de consulta"));
+            mockRollback.mockRejectedValueOnce(new Error("Error de rollback"));
+
+            const res = await request(app)
+                .delete("/api/detalles-venta/1");
+
+            // La ruta debe responder y liberar la conexión.
+            expect(res.status).toBe(500);
+            expect(res.body.error).toBe("Error de consulta");
             expect(mockRollback).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });

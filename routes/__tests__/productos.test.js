@@ -620,6 +620,51 @@ describe("Pruebas del módulo productos", () => {
             expect(mockQuery).toHaveBeenCalledTimes(3);
         });
 
+        // Comprueba los valores predeterminados cuando los campos opcionales
+        // llegan explícitamente como null.
+        test("debe aplicar valores predeterminados a los campos opcionales nulos", async () => {
+            mockQuery
+                .mockResolvedValueOnce([[{ id: 1 }], []])
+                .mockResolvedValueOnce([{ affectedRows: 1 }, []])
+                .mockResolvedValueOnce([[
+                    { ...productoEjemplo, estado: "activo", cant_producto: 0 },
+                ], []]);
+
+            const datos = {
+                ...datosProducto,
+                img_producto: null,
+                descripcion: null,
+                color_producto: null,
+                cant_producto: null,
+                id_talla: null,
+                id_medida: 1,
+                id_local: null,
+                estado: null,
+            };
+
+            const res = await request(app).put("/1").send(datos);
+
+            expect(res.status).toBe(200);
+
+            const parametrosUpdate = mockQuery.mock.calls[1][1];
+
+            expect(parametrosUpdate).toEqual([
+                null,                  // img_producto ?? null
+                datos.nombre_producto.trim(),
+                null,                  // descripcion ?? null
+                null,                  // color_producto ?? null
+                datos.marca_producto.trim(),
+                0,                     // cant_producto ?? 0
+                datos.modelo.trim(),
+                1,                     // id_talla ?? id_medida
+                datos.id_proveedor,
+                null,                  // id_local ?? null
+                datos.valor_unitario,
+                "activo",              // estado ?? "activo"
+                "1",
+            ]);
+        });
+
         test("debe responder 500 si falla la consulta inicial", async () => {
             mockQuery.mockRejectedValueOnce(new Error("Error de consulta"));
 
