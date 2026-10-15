@@ -1,20 +1,13 @@
-
-import { jest } from "@jest/globals";
 import request from "supertest";
 import express from "express";
+import clientesRouter from "../clientes.js";
 
-// Simulamos la conexión a la BD.
+// Simulamos la conexión a la BD (usa __mocks__/db.js).
 // Así las pruebas no necesitan conectarse a MySQL.
-const mockQuery = jest.fn();
+jest.mock("../../db.js");
+import pool from "../../db.js";
 
-jest.unstable_mockModule("../../db.js", () => ({
-    default: {
-        query: mockQuery,
-    },
-}));
-
-// Importamos el router después de configurar el mock.
-const { default: clientesRouter } = await import("../clientes.js");
+const mockQuery = pool.query;
 
 // Creamos una aplicación Express exclusiva para las pruebas.
 const app = express();

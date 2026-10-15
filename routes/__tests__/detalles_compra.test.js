@@ -1,14 +1,17 @@
-import { jest } from "@jest/globals";
 import request from "supertest";
 import express from "express";
+import detallesRouter from "../detallesCompra.js";
 
 // Simulamos la base de datos para no modificar el inventario real.
-const mockQuery = jest.fn();
+jest.mock("../../db.js");
+import pool from "../../db.js";
+
+const mockQuery = pool.query;
 const mockBeginTransaction = jest.fn();
 const mockCommit = jest.fn();
 const mockRollback = jest.fn();
 const mockRelease = jest.fn();
-const mockGetConnection = jest.fn();
+const mockGetConnection = pool.getConnection;
 
 // Simulamos la conexión que utiliza las transacciones.
 const mockConn = {
