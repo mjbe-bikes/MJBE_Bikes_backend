@@ -1,3 +1,4 @@
+
 import { jest } from "@jest/globals";
 import request from "supertest";
 import express from "express";
@@ -154,13 +155,17 @@ describe("Pruebas del módulo detallesVenta", () => {
     describe("POST /", () => {
         test("debe crear el detalle y descontar el stock", async () => {
             mockQuery
-                .mockResolvedValueOnce([[{
-                    nombre_producto: "Producto de prueba",
-                    cant_producto: 20,
-                }], []]) // Busca el producto.
+                .mockResolvedValueOnce([[
+                    {
+                        nombre_producto: "Producto de prueba",
+                        cant_producto: 20,
+                    },
+                ], []]) // Busca el producto.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Descuenta stock.
                 .mockResolvedValueOnce([{ insertId: 10 }, []]) // Inserta el detalle.
-                .mockResolvedValueOnce([[{ ...detalleEjemplo, id: 10 }], []]); // Consulta final.
+                .mockResolvedValueOnce([[
+                    { ...detalleEjemplo, id: 10 },
+                ], []]); // Consulta final.
 
             const res = await request(app)
                 .post("/api/detalles-venta")
@@ -172,12 +177,48 @@ describe("Pruebas del módulo detallesVenta", () => {
                 });
 
             expect(res.status).toBe(201);
-            expect(res.body.mensaje).toBe("Detalle de venta creado exitosamente");
+            expect(res.body.mensaje).toBe(
+                "Detalle de venta creado exitosamente"
+            );
             expect(res.body.id).toBe(10);
             expect(res.body.detalle.id).toBe(10);
             expect(mockBeginTransaction).toHaveBeenCalledTimes(1);
             expect(mockCommit).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
+
+        // Comprueba la alternativa null cuando se omite el precio.
+        test("debe crear el detalle con precio null si no se envía", async () => {
+            mockQuery
+                .mockResolvedValueOnce([[
+                    {
+                        nombre_producto: "Producto de prueba",
+                        cant_producto: 20,
+                    },
+                ], []]) // Busca el producto.
+                .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Descuenta stock.
+                .mockResolvedValueOnce([{ insertId: 10 }, []]) // Inserta el detalle.
+                .mockResolvedValueOnce([[
+                    {
+                        ...detalleEjemplo,
+                        id: 10,
+                        precio_unitario_momento: null,
+                    },
+                ], []]); // Consulta final.
+
+            const res = await request(app)
+                .post("/api/detalles-venta")
+                .send({
+                    id_venta: 2,
+                    id_producto: 3,
+                    cantidad: 5,
+                });
+
+            expect(res.status).toBe(201);
+
+            // Verifica que el INSERT reciba null como precio.
+            expect(mockQuery.mock.calls[2][1][3]).toBeNull();
+            expect(mockCommit).toHaveBeenCalledTimes(1);
         });
 
         test("debe rechazar campos requeridos faltantes", async () => {
@@ -197,7 +238,11 @@ describe("Pruebas del módulo detallesVenta", () => {
             async (cantidad) => {
                 const res = await request(app)
                     .post("/api/detalles-venta")
-                    .send({ id_venta: 2, id_producto: 3, cantidad });
+                    .send({
+                        id_venta: 2,
+                        id_producto: 3,
+                        cantidad,
+                    });
 
                 expect(res.status).toBe(400);
                 expect(res.body.error).toBe(
@@ -212,7 +257,11 @@ describe("Pruebas del módulo detallesVenta", () => {
 
             const res = await request(app)
                 .post("/api/detalles-venta")
-                .send({ id_venta: 2, id_producto: 999, cantidad: 5 });
+                .send({
+                    id_venta: 2,
+                    id_producto: 999,
+                    cantidad: 5,
+                });
 
             expect(res.status).toBe(404);
             expect(res.body.error).toBe("El producto no existe");
@@ -223,12 +272,19 @@ describe("Pruebas del módulo detallesVenta", () => {
 
         test("debe rechazar una venta cuando el stock es insuficiente", async () => {
             mockQuery.mockResolvedValueOnce([[
-                { nombre_producto: "Producto de prueba", cant_producto: 2 },
+                {
+                    nombre_producto: "Producto de prueba",
+                    cant_producto: 2,
+                },
             ], []]);
 
             const res = await request(app)
                 .post("/api/detalles-venta")
-                .send({ id_venta: 2, id_producto: 3, cantidad: 5 });
+                .send({
+                    id_venta: 2,
+                    id_producto: 3,
+                    cantidad: 5,
+                });
 
             expect(res.status).toBe(400);
             expect(res.body.error).toContain("Stock insuficiente");
@@ -238,11 +294,17 @@ describe("Pruebas del módulo detallesVenta", () => {
         });
 
         test("debe responder 500 y revertir si falla una consulta", async () => {
-            mockQuery.mockRejectedValueOnce(new Error("Error de inventario"));
+            mockQuery.mockRejectedValueOnce(
+                new Error("Error de inventario")
+            );
 
             const res = await request(app)
                 .post("/api/detalles-venta")
-                .send({ id_venta: 2, id_producto: 3, cantidad: 5 });
+                .send({
+                    id_venta: 2,
+                    id_producto: 3,
+                    cantidad: 5,
+                });
 
             expect(res.status).toBe(500);
             expect(res.body.error).toBe("Error de inventario");
@@ -264,7 +326,10 @@ describe("Pruebas del módulo detallesVenta", () => {
                 ], []]) // Busca el detalle anterior.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Repone stock anterior.
                 .mockResolvedValueOnce([[
-                    { nombre_producto: "Producto de prueba", cant_producto: 20 },
+                    {
+                        nombre_producto: "Producto de prueba",
+                        cant_producto: 20,
+                    },
                 ], []]) // Verifica stock disponible.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Descuenta nuevo stock.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Actualiza el detalle.
@@ -276,6 +341,43 @@ describe("Pruebas del módulo detallesVenta", () => {
 
             expect(res.status).toBe(200);
             expect(res.body.cantidad).toBe(8);
+            expect(mockCommit).toHaveBeenCalledTimes(1);
+            expect(mockRelease).toHaveBeenCalledTimes(1);
+        });
+
+        // Comprueba que se conserve la cantidad anterior si se omite.
+        test("debe conservar la cantidad anterior si no se envía una nueva", async () => {
+            mockQuery
+                .mockResolvedValueOnce([[
+                    { id_venta: 2, id_producto: 3, cantidad: 5 },
+                ], []]) // Busca el detalle anterior.
+                .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Repone el stock anterior.
+                .mockResolvedValueOnce([[
+                    {
+                        nombre_producto: "Producto de prueba",
+                        cant_producto: 20,
+                    },
+                ], []]) // Comprueba el stock del producto.
+                .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Descuenta el stock.
+                .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Actualiza el detalle.
+                .mockResolvedValueOnce([[
+                    {
+                        ...detalleEjemplo,
+                        cantidad: 5,
+                        precio_unitario_momento: null,
+                    },
+                ], []]); // Consulta final.
+
+            // Se envía un objeto vacío para reutilizar los datos anteriores.
+            const res = await request(app)
+                .put("/api/detalles-venta/1")
+                .send({});
+
+            expect(res.status).toBe(200);
+            expect(res.body.cantidad).toBe(5);
+
+            // El UPDATE debe recibir 5 en el parámetro de cantidad.
+            expect(mockQuery.mock.calls[4][1][2]).toBe(5);
             expect(mockCommit).toHaveBeenCalledTimes(1);
             expect(mockRelease).toHaveBeenCalledTimes(1);
         });
@@ -319,7 +421,10 @@ describe("Pruebas del módulo detallesVenta", () => {
                 ], []]) // Busca el detalle anterior.
                 .mockResolvedValueOnce([{ affectedRows: 1 }, []]) // Repone stock.
                 .mockResolvedValueOnce([[
-                    { nombre_producto: "Producto de prueba", cant_producto: 2 },
+                    {
+                        nombre_producto: "Producto de prueba",
+                        cant_producto: 2,
+                    },
                 ], []]); // Stock insuficiente para la nueva cantidad.
 
             const res = await request(app)
@@ -342,7 +447,10 @@ describe("Pruebas del módulo detallesVenta", () => {
 
             const res = await request(app)
                 .put("/api/detalles-venta/1")
-                .send({ id_producto: 999, cantidad: 4 });
+                .send({
+                    id_producto: 999,
+                    cantidad: 4,
+                });
 
             expect(res.status).toBe(404);
             expect(res.body.error).toBe("El producto no existe");
@@ -350,7 +458,9 @@ describe("Pruebas del módulo detallesVenta", () => {
         });
 
         test("debe responder 500 y revertir si falla una consulta", async () => {
-            mockQuery.mockRejectedValueOnce(new Error("Error al actualizar"));
+            mockQuery.mockRejectedValueOnce(
+                new Error("Error al actualizar")
+            );
 
             const res = await request(app)
                 .put("/api/detalles-venta/1")
@@ -394,7 +504,9 @@ describe("Pruebas del módulo detallesVenta", () => {
         });
 
         test("debe responder 500 y revertir si falla una consulta", async () => {
-            mockQuery.mockRejectedValueOnce(new Error("Error al eliminar"));
+            mockQuery.mockRejectedValueOnce(
+                new Error("Error al eliminar")
+            );
 
             const res = await request(app).delete("/api/detalles-venta/1");
 
@@ -405,4 +517,3 @@ describe("Pruebas del módulo detallesVenta", () => {
         });
     });
 });
-
